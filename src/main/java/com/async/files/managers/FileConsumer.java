@@ -11,51 +11,47 @@ import java.util.concurrent.Callable;
 
 public class FileConsumer implements Callable<FilesResult> {
 
-    private final int processId;
+    private final FilesResult filesResult;
     private final Queue<String> queue;
 
-    public FileConsumer(int processId, Queue<String> queue) {
-        this.processId = processId;
+    public FileConsumer(FilesResult filesResult, Queue<String> queue) {
+        this.filesResult = filesResult;
         this.queue = queue;
     }
 
     @Override
     public FilesResult call() throws Exception {
 
-        FilesResult filesResult = FilesRepo.getFilesResult(processId);
-        Map<Character, Integer> charFrequency = new HashMap<>();
+        while(true) {
+            synchronized (queue) {
+                while (queue.isEmpty() && FilesResult.totalFiles > 0) {
+                    System.out.println("Queue is empty, cant be consumed: " + Thread.currentThread().getName());
+                    queue.wait();
+                }
 
-        synchronized (queue){
-            while(queue.isEmpty() && FilesResult.totalFiles > 0){
-                System.out.println("Queue is empty, cant be consumed: " + Thread.currentThread().getName());
-                queue.wait();
-            }
-            if(queue.isEmpty() || FilesResult.totalFiles == 0){
-                System.out.println("Consumer thread released " + Thread.currentThread().getName());
+                if (FilesResult.totalFiles == 0) {
+                    System.out.println("Consumer thread released " + Thread.currentThread().getName());
+                    filesResult.setProcessStatus(ProcessStatus.COMPLETED);
+                    queue.notifyAll();
+                    break;
+                }
+                String fileContent = queue.poll();
+
+                System.out.println("Consumer " + Thread.currentThread().getName() +
+                        " reading file content from queue: " + fileContent);
+
+                synchronized (filesResult) {
+                    for(int i = 0; i < fileContent.length(); i++) {
+                        char x = fileContent.charAt(i);
+                        if (x == ' ') continue;
+                        filesResult.incrementCharFreq(x, 1);
+                    }
+                    FilesResult.totalFiles--;
+                }
                 queue.notifyAll();
-                return filesResult;
             }
-            String fileContent = queue.poll();
 
-            System.out.println("Consumer " + Thread.currentThread().getName() +
-                    " reading file content from queue: " + fileContent);
-            for(int i = 0;i<fileContent.length();i++){
-                char x = fileContent.charAt(i);
-                if(x == ' ') continue;
-                int freq = charFrequency.getOrDefault(x, 0);
-                charFrequency.put(x, freq+1);
-            }
-            queue.notifyAll();
-        }
 
-        synchronized (filesResult){
-            for(Map.Entry<Character, Integer> map: charFrequency.entrySet()){
-                filesResult.incrementCharFreq(map.getKey(), map.getValue());
-            }
-            FilesResult.totalFiles--;
-        }
-        if(FilesResult.totalFiles == 0){
-            filesResult.setProcessStatus(ProcessStatus.COMPLETED);
         }
         return filesResult;
     }

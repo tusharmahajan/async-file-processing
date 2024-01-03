@@ -27,7 +27,7 @@ public class FileWorker implements Callable<FilesResult> {
     @Override
     public FilesResult call() throws Exception {
 
-        System.out.println("Producer processed file: " + path.substring(path.lastIndexOf("/")));
+        System.out.println("Producer processed file: " + path.substring(path.lastIndexOf("/")+1));
         String fileContent = readAndProcessFile();
 
         FilesResult filesResult = FilesRepo.getFilesResult(processId);
