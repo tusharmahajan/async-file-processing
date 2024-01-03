@@ -13,12 +13,10 @@ public class FileConsumer implements Callable<FilesResult> {
 
     private final int processId;
     private final Queue<String> queue;
-    private final int totalFiles;
 
-    public FileConsumer(int processId, Queue<String> queue, int totalFiles) {
+    public FileConsumer(int processId, Queue<String> queue) {
         this.processId = processId;
         this.queue = queue;
-        this.totalFiles = totalFiles;
     }
 
     @Override

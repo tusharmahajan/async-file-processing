@@ -29,7 +29,7 @@ public class FileManager {
         }
 
         for(int i = 0;i<5;i++){
-            consumerPool.submit(new FileConsumer(filesResult.getProcessId(), queue, filePaths.size()));
+            consumerPool.submit(new FileConsumer(filesResult.getProcessId(), queue));
         }
         producerPool.shutdown();
         consumerPool.shutdown();
